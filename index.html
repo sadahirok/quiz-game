@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スポーツ＆エンタメ クイズバトル</title>
+<style>
+  :root {
+    --bg: #0a0a14;
+    --surface: #12122a;
+    --surface2: #1a1a38;
+    --border: rgba(120,100,255,0.25);
+    --accent: #7c5cfc;
+    --accent2: #fc5c7d;
+    --text: #f0eeff;
+    --muted: #8880aa;
+    --gold: #ffd700;
+    --correct: #2ecc71;
+    --wrong: #e74c3c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 16px;
+  }
+
+  /* Header */
+  .header {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    padding: 24px 0 16px;
+  }
+  .header .logo {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-size: 26px;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  /* HUD */
+  .hud {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+  }
+  .hud-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .hud-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .hud-val { font-size: 20px; font-weight: 700; color: var(--text); }
+  .hud-val.gold { color: var(--gold); }
+
+  /* Progress bar */
+  .progress-wrap {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface2);
+    border-radius: 99px;
+    height: 6px;
+    margin: 8px 0 16px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 6px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+  }
+
+  /* Card */
+  .card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 20px;
+    margin-bottom: 12px;
+  }
+  .q-meta {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .q-text {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.6;
+    color: var(--text);
+    min-height: 56px;
+  }
+
+  /* Timer ring */
+  .timer-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0 10px;
+  }
+  .timer-ring { position: relative; width: 60px; height: 60px; }
+  .timer-ring svg { transform: rotate(-90deg); }
+  .timer-circle-bg { fill: none; stroke: var(--surface2); stroke-width: 5; }
+  .timer-circle { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round;
+    stroke-dasharray: 163; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+  .timer-num {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: var(--text);
+  }
+
+  /* Choices */
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: inherit;
+    width: 100%;
+  }
+  .choice-btn:active { transform: scale(0.98); }
+  .choice-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(124,92,252,0.12); }
+  .choice-btn .badge {
+    min-width: 28px; height: 28px;
+    border-radius: 8px;
+    background: rgba(120,100,255,0.15);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .choice-btn.correct { background: rgba(46,204,113,0.15); border-color: var(--correct); }
+  .choice-btn.correct .badge { background: var(--correct); color: #fff; border-color: var(--correct); }
+  .choice-btn.wrong { background: rgba(231,76,60,0.15); border-color: var(--wrong); }
+  .choice-btn.wrong .badge { background: var(--wrong); color: #fff; border-color: var(--wrong); }
+  .choice-btn:disabled { cursor: default; }
+
+  /* Feedback */
+  .feedback {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 0 0;
+    min-height: 28px;
+    transition: opacity 0.2s;
+  }
+  .feedback.correct-msg { color: var(--correct); }
+  .feedback.wrong-msg { color: var(--wrong); }
+
+  /* Next btn */
+  .next-btn {
+    width: 100%;
+    max-width: 480px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: opacity 0.2s, transform 0.1s;
+    font-family: inherit;
+    letter-spacing: 1px;
+  }
+  .next-btn:active { transform: scale(0.98); }
+  .next-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* Result screen */
+  .result {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    animation: fadeIn 0.4s;
+  }
+  .result-icon { font-size: 64px; margin: 20px 0 8px; }
+  .result-title { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+  .result-score {
+    font-size: 56px;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin: 8px 0;
+  }
+  .result-sub { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+  .result-rank {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin: 12px 0 20px;
+    font-size: 15px;
+  }
+  .rank-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+  .rank-name { font-size: 22px; font-weight: 700; color: var(--accent); }
+
+  .start-screen {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    animation: fadeIn 0.4s;
+  }
+  .start-desc { font-size: 14px; color: var(--muted); line-height: 1.7; margin: 12px 0 24px; }
+  .tag-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tag {
+    background: rgba(124,92,252,0.12);
+    border: 1px solid rgba(124,92,252,0.3);
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+  .pop { animation: pop 0.25s ease; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">⚡ Quiz Battle</div>
+  <h1>スポーツ＆エンタメ<br>クイズバトル</h1>
+</div>
+
+<div id="app"></div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "サッカーワールドカップで最多優勝回数を誇る国はどこ？",
+    choices: ["ブラジル", "ドイツ", "アルゼンチン", "イタリア"],
+    answer: 0,
+    cat: "⚽ サッカー"
+  },
+  {
+    q: "NBAで歴代最多得点記録を持つ選手は？（2024年時点）",
+    choices: ["マイケル・ジョーダン", "コービー・ブライアント", "レブロン・ジェームズ", "カリーム・アブドゥル＝ジャバー"],
+    answer: 2,
+    cat: "🏀 バスケ"
+  },
+  {
+    q: "大谷翔平が所属するMLBのチームは？（2024年）",
+    choices: ["ロサンゼルス・エンゼルス", "ロサンゼルス・ドジャース", "ニューヨーク・ヤンキース", "シカゴ・カブス"],
+    answer: 1,
+    cat: "⚾ 野球"
+  },
+  {
+    q: "映画「鬼滅の刃 無限列車編」が日本の歴代興行収入1位になったのは何年？",
+    choices: ["2019年", "2020年", "2021年", "2022年"],
+    answer: 1,
+    cat: "🎬 アニメ映画"
+  },
+  {
+    q: "テニスで「グランドスラム」と呼ばれるのは何冠を制した場合？",
+    choices: ["2冠", "3冠", "4冠", "5冠"],
+    answer: 2,
+    cat: "🎾 テニス"
+  },
+  {
+    q: "BTS（防弾少年団）の出身国はどこ？",
+    choices: ["日本", "中国", "韓国", "タイ"],
+    answer: 2,
+    cat: "🎵 音楽"
+  },
+  {
+    q: "オリンピックは何年ごとに開催される？（夏季）",
+    choices: ["2年", "4年", "5年", "6年"],
+    answer: 1,
+    cat: "🏅 オリンピック"
+  },
+  {
+    q: "ゲーム「マリオ」シリーズを作ったゲーム会社はどこ？",
+    choices: ["ソニー", "任天堂", "カプコン", "バンダイナムコ"],
+    answer: 1,
+    cat: "🎮 ゲーム"
+  },
+  {
+    q: "ONE PIECEの主人公・ルフィが目指しているものは？",
+    choices: ["最強の剣士", "世界一の懸賞金", "海賊王", "悪魔の実の全制覇"],
+    answer: 2,
+    cat: "📖 マンガ"
+  },
+  {
+    q: "ラグビーワールドカップ2019が開催された国はどこ？",
+    choices: ["フランス", "日本", "イギリス", "オーストラリア"],
+    answer: 1,
+    cat: "🏉 ラグビー"
+  }
+];
+
+const TIMER_SEC = 15;
+const TOTAL_Q = QUESTIONS.length;
+
+let state = {
+  screen: 'start',
+  qIndex: 0,
+  score: 0,
+  streak: 0,
+  selected: null,
+  answered: false,
+  timer: TIMER_SEC,
+  timerInterval: null,
+  shuffled: []
+};
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function init() {
+  state.shuffled = shuffle(QUESTIONS);
+  state.qIndex = 0;
+  state.score = 0;
+  state.streak = 0;
+  state.selected = null;
+  state.answered = false;
+  state.screen = 'start';
+  render();
+}
+
+function startGame() {
+  state.screen = 'quiz';
+  state.qIndex = 0;
+  state.score = 0;
+  state.streak = 0;
+  renderQuiz();
+}
+
+function startTimer() {
+  clearInterval(state.timerInterval);
+  state.timer = TIMER_SEC;
+  updateTimerUI();
+  state.timerInterval = setInterval(() => {
+    state.timer--;
+    updateTimerUI();
+    if (state.timer <= 0) {
+      clearInterval(state.timerInterval);
+      if (!state.answered) timeUp();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const num = document.getElementById('timer-num');
+  const circle = document.getElementById('timer-circle');
+  if (num) num.textContent = state.timer;
+  if (circle) {
+    const pct = state.timer / TIMER_SEC;
+    circle.style.strokeDashoffset = 163 * (1 - pct);
+    circle.style.stroke = state.timer <= 5 ? '#e74c3c' : state.timer <= 9 ? '#ffd700' : 'var(--accent)';
+  }
+}
+
+function timeUp() {
+  state.answered = true;
+  state.streak = 0;
+  const q = state.shuffled[state.qIndex];
+  document.querySelectorAll('.choice-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+  });
+  const fb = document.getElementById('feedback');
+  if (fb) { fb.textContent = '⏰ 時間切れ！'; fb.className = 'feedback wrong-msg'; }
+  enableNext();
+}
+
+function selectAnswer(idx) {
+  if (state.answered) return;
+  clearInterval(state.timerInterval);
+  state.answered = true;
+  state.selected = idx;
+  const q = state.shuffled[state.qIndex];
+  const correct = idx === q.answer;
+  if (correct) {
+    const bonus = state.timer >= 10 ? 150 : state.timer >= 5 ? 100 : 60;
+    state.score += bonus;
+    state.streak++;
+    if (state.streak > 1) state.score += state.streak * 20;
+  } else {
+    state.streak = 0;
+  }
+  document.querySelectorAll('.choice-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+    else if (i === idx && !correct) btn.classList.add('wrong');
+  });
+  const fb = document.getElementById('feedback');
+  if (fb) {
+    if (correct) {
+      fb.textContent = state.streak > 1 ? `🔥 ${state.streak}連続正解！ ボーナス +${state.streak * 20}` : '✅ 正解！';
+      fb.className = 'feedback correct-msg';
+    } else {
+      fb.textContent = '❌ 不正解…';
+      fb.className = 'feedback wrong-msg';
+    }
+  }
+  const sv = document.getElementById('score-val');
+  if (sv) { sv.textContent = state.score; sv.classList.add('pop'); setTimeout(() => sv.classList.remove('pop'), 300); }
+  enableNext();
+}
+
+function enableNext() {
+  const nb = document.getElementById('next-btn');
+  if (nb) nb.disabled = false;
+}
+
+function nextQuestion() {
+  state.qIndex++;
+  if (state.qIndex >= TOTAL_Q) {
+    clearInterval(state.timerInterval);
+    state.screen = 'result';
+    render();
+  } else {
+    state.answered = false;
+    state.selected = null;
+    renderQuiz();
+  }
+}
+
+function getRank(score) {
+  if (score >= 1800) return { name: '🏆 伝説のチャンピオン', msg: '満点に近い！すごい！' };
+  if (score >= 1400) return { name: '💎 エキスパート', msg: 'クイズ上級者！' };
+  if (score >= 1000) return { name: '⭐ ベテランプレイヤー', msg: 'なかなかの実力！' };
+  if (score >= 600)  return { name: '🎯 チャレンジャー', msg: 'もう少しで上位！' };
+  return { name: '🌱 ルーキー', msg: '練習あるのみ！次は上を目指せ！' };
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (state.screen === 'start') renderStart(app);
+  else if (state.screen === 'quiz') renderQuiz();
+  else renderResult(app);
+}
+
+function renderStart(app) {
+  app.innerHTML = `
+    <div class="start-screen">
+      <div class="tag-row">
+        <span class="tag">⚽ スポーツ</span>
+        <span class="tag">🎬 映画</span>
+        <span class="tag">🎵 音楽</span>
+        <span class="tag">🎮 ゲーム</span>
+        <span class="tag">📖 マンガ</span>
+      </div>
+      <p class="start-desc">全${TOTAL_Q}問のクイズに挑戦！<br>速く答えるほどスコアが高くなる。<br>連続正解でボーナス獲得！</p>
+      <button class="next-btn" onclick="startGame()" style="font-size:18px; padding:18px;">⚡ バトル開始！</button>
+    </div>
+  `;
+}
+
+function renderQuiz() {
+  const app = document.getElementById('app');
+  const q = state.shuffled[state.qIndex];
+  const pct = ((state.qIndex) / TOTAL_Q * 100).toFixed(0);
+  const LABELS = ['A', 'B', 'C', 'D'];
+
+  app.innerHTML = `
+    <div class="hud">
+      <div class="hud-item">
+        <div class="hud-label">問題</div>
+        <div class="hud-val">${state.qIndex + 1}<span style="font-size:13px;color:var(--muted)">/${TOTAL_Q}</span></div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">スコア</div>
+        <div class="hud-val gold" id="score-val">${state.score}</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">連続</div>
+        <div class="hud-val" style="color:${state.streak > 0 ? 'var(--accent2)' : 'var(--muted)'}">${state.streak}🔥</div>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+    <div class="card">
+      <div class="q-meta">${q.cat} &nbsp;|&nbsp; Q${state.qIndex + 1}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="timer-wrap">
+        <div class="timer-ring">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <circle class="timer-circle-bg" cx="30" cy="30" r="26"/>
+            <circle class="timer-circle" id="timer-circle" cx="30" cy="30" r="26"/>
+          </svg>
+          <div class="timer-num" id="timer-num">${TIMER_SEC}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:16px 20px">
+      <div class="choices">
+        ${q.choices.map((c, i) => `
+          <button class="choice-btn" onclick="selectAnswer(${i})">
+            <span class="badge">${LABELS[i]}</span>
+            ${c}
+          </button>
+        `).join('')}
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()" disabled>
+      ${state.qIndex + 1 < TOTAL_Q ? '次の問題へ →' : '結果を見る 🏁'}
+    </button>
+  `;
+  startTimer();
+}
+
+function renderResult(app) {
+  const rank = getRank(state.score);
+  const maxScore = TOTAL_Q * 170;
+  const pct = Math.round(state.score / maxScore * 100);
+  app.innerHTML = `
+    <div class="result">
+      <div class="result-icon">🏁</div>
+      <div class="result-title">クイズ終了！</div>
+      <div class="result-score">${state.score}</div>
+      <div class="result-sub">pts &nbsp;|&nbsp; 正解率: 約${pct}%</div>
+      <div class="result-rank">
+        <div class="rank-label">あなたのランク</div>
+        <div class="rank-name">${rank.name}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">${rank.msg}</div>
+      </div>
+      <button class="next-btn" onclick="init()" style="font-size:16px; margin-bottom:8px;">🔄 もう一度挑戦！</button>
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
